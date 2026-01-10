@@ -1,0 +1,21 @@
+{
+    "folders": [
+        {
+            "path": "."
+        }
+    ],
+    "build_systems": [
+        {
+            "name": "DJGPP Build & Run",
+            "working_dir": "$project_path",
+            "file_regex": "^(.*?):([0-9]+):",
+            "selector": "source.c",
+            "shell": true,
+            "quiet": true,
+            "variants": [
+                {"name": "Build", "cmd": ["make", "-B"]},
+                {"name": "Run", "cmd": ["cmd", "/c", "build.bat && run.bat"]}
+            ]
+        }
+    ]
+}
