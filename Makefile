@@ -1,16 +1,24 @@
 # Run from a shell that has DJGPP environment set (call tools\djgpp\setenv.bat first),
 # or run 'make' from a cmd session where setenv.bat was executed.
 
-CC = i586-pc-msdosdjgpp-gcc
-AS = i586-pc-msdosdjgpp-as
-LD = i586-pc-msdosdjgpp-ld
-NM = i586-pc-msdosdjgpp-nm
-
-CFLAGS = -Wall -Werror -Wno-unused-function -O6 -g -march=i386 -mgeneral-regs-only -fomit-frame-pointer
-# -mgeneral-regs-only
 SRCDIR = src
 BUILD = build
-TARGET = $(BUILD)\myprog.exe
+TARGET = $(BUILD)/myprog.exe
+
+CFLAGS = -std=gnu99
+# CFLAGS += -save-temps
+CFLAGS += -Wall -Werror -pedantic
+CFLAGS += -Wno-unused-function
+CFLAGS += -march=i486
+# CFLAGS += -O6
+CFLAGS += -O0 -g
+CFLAGS += -fomit-frame-pointer
+# CFLAGS += -mgeneral-regs-only
+LDFLAGS =
+
+CC = i586-pc-msdosdjgpp-gcc
+LD = i586-pc-msdosdjgpp-ld
+NM = i586-pc-msdosdjgpp-nm
 
 SRCS = \
 	$(SRCDIR)/gfx.c \
@@ -25,9 +33,12 @@ OBJS = \
 	$(BUILD)/main.o \
 #
 
-.PHONY: all clean nmstuff
+.PHONY: all clean run
 
 all: $(BUILD) $(TARGET)
+
+run: all
+	dosbox -c "mount c \"$(BUILD)\"" -c "c:" -c "myprog.exe" -c "pause" -c "exit"
 
 $(BUILD):
 	mkdir -p $(BUILD)
@@ -42,7 +53,7 @@ $(BUILD)/%.s.o: $(SRCDIR)/%.s
 
 # Link
 $(TARGET): $(OBJS) $(wildcard $(SRCDIR)/*.[hc])
-	$(CC) $(CFLAGS) -o $@ $(OBJS)
+	$(CC) -o $@ $(OBJS) $(LDFLAGS)
 
 clean:
 	rm -f $(BUILD)/*.o

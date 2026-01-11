@@ -6,15 +6,17 @@
     ],
     "build_systems": [
         {
-            "name": "DJGPP Build & Run",
+            "name": "DOS Game",
             "working_dir": "$project_path",
             "file_regex": "^(.*?):([0-9]+):",
             "selector": "source.c",
             "shell": true,
             "quiet": true,
+            "cmd": ["make"],
             "variants": [
-                {"name": "Build", "cmd": ["make", "-B"]},
-                {"name": "Run", "cmd": ["cmd", "/c", "build.bat && run.bat"]}
+                {"name": "Rebuild", "cmd": ["make", "-B"]},
+                {"name": "Run", "cmd": ["make", "run"]},
+                {"name": "Clean", "cmd": ["make", "clean"]}
             ]
         }
     ]

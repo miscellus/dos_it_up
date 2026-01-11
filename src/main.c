@@ -10,6 +10,9 @@
 #include "timer.h"
 #include "gfx.h"
 
+#define APPROX_FRAMES_PER_SECOND 60
+#define TICKS_PER_FRAME (TIMER_TICK_FREQ / APPROX_FRAMES_PER_SECOND)
+
 int Init(void)
 {
     printf("Init Timer\n");
@@ -30,52 +33,58 @@ int Destroy(void)
     return 0;
 }
 
+static uint16_t box_x = 50;
+static uint16_t box_y = 50;
+
+void Update(void)
+{
+    box_x += 1;
+    box_y += 1;
+
+    while (box_x >= 320) box_x -= 320;
+    while (box_y >= 200) box_y -= 200;
+}
+
+void Draw(void)
+{
+    // memset(vram, 1, sizeof(vram));
+    TimerWaitVSync();
+    GfxClear(1);
+
+    // for (uint16_t y = 0, oy = 0; y < 200; ++y, oy += 320)
+    // {
+    //     for (uint16_t x = 0; x < 320; ++x)
+    //     {
+    //         vram[oy + x] = (uint8_t)(x ^ y);
+    //     }
+    // }
+
+    GfxDrawRect(box_x-3, box_y-3, 26, 26, 0);
+    GfxDrawRect(box_x, box_y, 20, 20, 6);
+
+    // GfxFlip();
+}
+
 int main(void)
 {
     Init();
 
-    uint16_t box_x = 50;
-    uint16_t box_y = 50;
+    uint32_t tstart = TimerGetTicks();
+    uint32_t tlast = tstart;
+    uint32_t taccum = 0;
 
-    for (int i = 0; !kbhit(); ++i)
+    for (uint32_t i = 0; !kbhit(); ++i)
     {
-        // uint32_t ticks = TimerGetTicks();
-        // if ((i & 15) == 0) printf("i: %d\t\t\tticks: %ld\n", i, ticks);
+        int32_t ticks = TimerGetTicks() - tlast;
+        tlast += ticks;
+        taccum += ticks;
 
-        //
-        // UPDATE
-        //
-
-        box_x += 1;
-        box_y += 1;
-
-        if (box_x >= 320) box_x = 0;
-        if (box_y >= 200) box_y = 0;
-
-        //
-        // DRAW
-        //
-
-        memset(vram, 0, sizeof(vram));
-
-        for (uint16_t y = box_y; y < box_y + 20 && y < 200; ++y)
+        for (; taccum > TICKS_PER_FRAME; taccum -= TICKS_PER_FRAME)
         {
-            for (uint16_t x = box_x; x < box_x + 20 && x < 320; ++x)
-            {
-                vram[x + y*320] = 6;
-            }
+            Update();
         }
 
-        // for (uint16_t y = 0, oy = 0; y < 200; ++y, oy += 320)
-        // {
-        //     for (uint16_t x = 0; x < 320; ++x)
-        //     {
-        //         vram[oy + x] = (uint8_t)(x + y);
-        //     }
-        // }
-        GfxFlip();
-
-        // TimerWaitVSync();
+        Draw();
     }
 
     printf("Press ENTER to quit ...\n");

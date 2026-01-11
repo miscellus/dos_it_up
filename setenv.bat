@@ -1,0 +1,2 @@
+call "%~dp0tools\djgpp\setenv.bat"
+set PATH=C:\Program Files (x86)\DOSBox-0.74-3;%PATH%

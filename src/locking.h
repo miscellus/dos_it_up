@@ -9,10 +9,10 @@
 
 #define END_OF_FUNCTION(x) static void x##_End(void) {}
 
-#define LOCK_VARIABLE(x)  LockData((void *)&x, sizeof(x))
-#define LOCK_FUNCTION(x)  LockCode(x, (long)x##_End - (long)x)
+#define LOCK_VARIABLE(x)  LockData((uintptr_t)&(x), sizeof(x))
+#define LOCK_FUNCTION(x)  LockCode((uintptr_t)(x), (uintptr_t)(x##_End) - (uintptr_t)(x))
 
-static int LockData(void *a, long size)
+static int LockData(uintptr_t a, long size)
 {
     unsigned long baseaddr;
     __dpmi_meminfo region;
@@ -22,7 +22,7 @@ static int LockData(void *a, long size)
 
     region.handle = 0;
     region.size = size;
-    region.address = baseaddr + (unsigned long)a;
+    region.address = baseaddr + a;
 
     if (__dpmi_lock_linear_region(&region) == -1)
         return (-1);
@@ -30,7 +30,7 @@ static int LockData(void *a, long size)
     return (0);
 }
 
-int LockCode(void *a, long size)
+int LockCode(uintptr_t a, long size)
 {
     unsigned long baseaddr;
     __dpmi_meminfo region;

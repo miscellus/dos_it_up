@@ -1,6 +1,7 @@
 #include <dos.h>
 #include <dpmi.h>
 #include <go32.h>
+#include <stdio.h>
 
 #include "timer.h"
 #include "locking.h"
@@ -8,16 +9,6 @@
 #define TIMER_INTERRUPT 0x8
 
 static volatile uint32_t timerTicks = 0;
-
-// 1.193182 Mhz base frequency of PIT
-// 1193182 hz / (65535>>6) corresponds to 1166.356 hertz
-// 65535 is default divisor
-// 65535>>6 = 1023 is our divisor
-#define TIMER_DIVISOR_SHIFT 6UL
-#define TIMER_DIVISOR_MASK ((1UL << TIMER_DIVISOR_SHIFT) - 1UL)
-#define TIMER_DIVISOR_DEFAULT (65535UL)
-#define TIMER_DIVISOR (TIMER_DIVISOR_DEFAULT >> TIMER_DIVISOR_SHIFT)
-#define TIMER_APPROX_TICK_PERIOD 1166
 
 static _go32_dpmi_seginfo oldTimerHandlerSegInfo;
 
@@ -63,13 +54,12 @@ void TimerInit(void)
     _go32_dpmi_seginfo info;
     info.pm_selector = _go32_my_cs();
     info.pm_offset = (uint32_t)TimerHandler;
-    // _go32_dpmi_allocate_iret_wrapper(&info);
-
     _go32_dpmi_get_protected_mode_interrupt_vector(TIMER_INTERRUPT, &oldTimerHandlerSegInfo);
     _go32_dpmi_chain_protected_mode_interrupt_vector(TIMER_INTERRUPT, &info);
-    // _go32_dpmi_set_protected_mode_interrupt_vector(TIMER_INTERRUPT, &info);
 
     TimerSetDivisor(TIMER_DIVISOR);
+
+    printf("TIMER Freq: %lu\n", TIMER_TICK_FREQ);
 }
 
 void TimerDestroy(void)
@@ -87,4 +77,9 @@ void TimerWaitVSync(void)
 uint32_t TimerGetTicks(void)
 {
     return timerTicks;
+}
+
+double TimerTicksToSeconds(int32_t ticks)
+{
+    return ticks * TIMER_APPROX_PERIOD;
 }
