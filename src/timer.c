@@ -68,12 +68,6 @@ void TimerDestroy(void)
     _go32_dpmi_set_protected_mode_interrupt_vector(TIMER_INTERRUPT, &oldTimerHandlerSegInfo);
 }
 
-void TimerWaitVSync(void)
-{
-    while (inportb(0x3da) & 8);
-    while (!(inportb(0x3da) & 8));
-}
-
 uint32_t TimerGetTicks(void)
 {
     return timerTicks;

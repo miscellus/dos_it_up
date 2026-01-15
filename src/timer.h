@@ -17,7 +17,6 @@
 void TimerInit(void);
 void TimerDestroy(void);
 uint32_t TimerGetTicks(void);
-void TimerWaitVSync(void);
 double TimerTicksToSeconds(int32_t ticks);
 
 #endif

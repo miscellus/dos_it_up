@@ -11,11 +11,12 @@ typedef int32_t fix16;
 #define FIX16_ONE   (1 << FIX16_SHIFT)
 #define FIX16_HALF   (1 << (FIX16_SHIFT-1))
 
+#define FIX(a) ((a) << FIX16_SHIFT)
+#define FRAC(n, d) (FIX(n)/(d))
+
 /* Conversions */
 static inline fix16 FixFromInt(int32_t n) { return (fix16)(n << FIX16_SHIFT); }
 static inline int32_t FixToInt(fix16 a) { return (int32_t)(a >> FIX16_SHIFT); }
-static inline fix16 FixFromFloat(float f) { return (fix16)(f * (float)FIX16_ONE); }
-static inline float FixToFloat(fix16 a) { return (float)a / (float)FIX16_ONE; }
 
 /* Basic ops */
 static inline fix16 FixAdd(fix16 a, fix16 b) { return (fix16)(a + b); }

@@ -6,20 +6,72 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+#include <sys/farptr.h>
+#include <sys/movedata.h>
+#include <sys/nearptr.h>
+
+#include <mikmod.h>
+
+#define IMAGE_DATA_IMPLEMENTATION
+
+#define IMAGE_NAMES(IMG) \
+  IMG(sprite_sheet_1) \
+  /* end */
+
+#include "image_data.h"
 
 #include "timer.h"
 #include "gfx.h"
+#include "math.h"
 
 #define APPROX_FRAMES_PER_SECOND 60
 #define TICKS_PER_FRAME (TIMER_TICK_FREQ / APPROX_FRAMES_PER_SECOND)
 
+static MODULE *modFile;
+
 int Init(void)
 {
+    printf("Init Sound\n");
+    MikMod_RegisterDriver(&drv_sb);
+    MikMod_RegisterAllLoaders();
+
+    printf("Driver %.1024s\n", MikMod_InfoDriver());
+
     printf("Init Timer\n");
     TimerInit();
 
     printf("Init Gfx\n");
     GfxInit();
+
+    /* initialize the library */
+    md_mode |= DMODE_SOFT_MUSIC;
+    if (MikMod_Init(""))
+    {
+        fprintf(stderr, "Could not initialize sound, reason: %s\n",
+        MikMod_strerror(MikMod_errno));
+        return -1;
+    }
+
+    modFile = Player_Load("mus.mod", 64, 0);
+    if (modFile)
+    {
+        printf("HELLLOOOO!!!\n");
+        /* start module */
+        Player_Start(modFile);
+        while (Player_Active() || kbhit()) {
+            /* we’re playing */
+            for (uint64_t i = 0; i < 0xfffff; ++i);
+            MikMod_Update();
+        }
+
+        Player_Stop();
+        Player_Free(modFile);
+    }
+    else {
+        printf("NOOOOOOO!!!\n");
+    }
+
+    getchar();
     return 0;
 }
 
@@ -30,44 +82,55 @@ int Destroy(void)
 
     printf("Destroy Gfx\n");
     GfxDestroy();
+
+    printf("Destroy Sound\n");
+    MikMod_Exit();
     return 0;
 }
 
-static uint16_t box_x = 50;
-static uint16_t box_y = 50;
+static fix16 box_x = FIX(50);
+static fix16 box_y = FIX(50);
+static uint8_t color_bg = 1;
+
+static Sprite sprBall;
 
 void Update(void)
 {
-    box_x += 1;
-    box_y += 1;
+    static fix16 dx = FRAC(8, 1);
+    static fix16 dy = FRAC(1, 1);
+    box_x += dx;
+    box_y += dy;
 
-    while (box_x >= 320) box_x -= 320;
-    while (box_y >= 200) box_y -= 200;
+    dy += FRAC(1, 10);
+
+    const fix16 dimin = FRAC(92, 100);
+
+    if (box_x + FIX(16) >= FIX(320)) box_x = FIX(320-16), dx = -FixMul(dimin, dx), color_bg = 1 + (color_bg + 1) % 63;
+    if (box_x < 0) box_x = 0, dx = -FixMul(dimin, dx), color_bg = 1 + (color_bg + 1) % 63;
+    if (box_y + FIX(16) >= FIX(200)) box_y = FIX(200-16), dy = -FixMul(dimin, dy), color_bg = 1 + (color_bg + 1) % 63;
+    if (box_y < 0) box_y = 0, dy = -FixMul(dimin, dy), color_bg = 1 + (color_bg + 1) % 63;
 }
 
 void Draw(void)
 {
-    // memset(vram, 1, sizeof(vram));
-    TimerWaitVSync();
-    GfxClear(1);
-
-    // for (uint16_t y = 0, oy = 0; y < 200; ++y, oy += 320)
-    // {
-    //     for (uint16_t x = 0; x < 320; ++x)
-    //     {
-    //         vram[oy + x] = (uint8_t)(x ^ y);
-    //     }
-    // }
-
-    GfxDrawRect(box_x-3, box_y-3, 26, 26, 0);
-    GfxDrawRect(box_x, box_y, 20, 20, 6);
-
-    // GfxFlip();
+    GfxRenderTarget(GFX_BUFFER);
+    GfxClear(color_bg);
+    GfxDrawSpriteFx(&sprBall, box_x, box_y);
+    GfxRenderTarget(GFX_SCREEN);
+    GfxWaitVSync();
+    GfxFlip();
 }
 
 int main(void)
 {
     Init();
+
+    memset(&sprBall, 0, sizeof(sprBall));
+
+    sprBall.pixels = sprite_sheet_1;
+    sprBall.w = 16;
+    sprBall.h = 16;
+    sprBall.stride = 256;
 
     uint32_t tstart = TimerGetTicks();
     uint32_t tlast = tstart;
