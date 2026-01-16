@@ -12,13 +12,7 @@
 
 #include <mikmod.h>
 
-#define IMAGE_DATA_IMPLEMENTATION
-
-#define IMAGE_NAMES(IMG) \
-  IMG(sprite_sheet_1) \
-  /* end */
-
-#include "image_data.h"
+#include "data.h"
 
 #include "timer.h"
 #include "gfx.h"
@@ -43,6 +37,7 @@ int Init(void)
     printf("Init Gfx\n");
     GfxInit();
 
+#if 1
     /* initialize the library */
     md_mode |= DMODE_SOFT_MUSIC;
     if (MikMod_Init(""))
@@ -52,7 +47,7 @@ int Init(void)
         return -1;
     }
 
-    modFile = Player_Load("mus.mod", 64, 0);
+    modFile = Player_LoadMem((char *)&music, DATA_SIZE(music), 4, 0);
     if (modFile)
     {
         printf("HELLLOOOO!!!\n");
@@ -70,20 +65,20 @@ int Init(void)
     else {
         printf("NOOOOOOO!!!\n");
     }
-
     getchar();
+#endif
     return 0;
 }
 
-int Destroy(void)
+int Shutdown(void)
 {
-    printf("Destroy timer ...\n");
+    printf("Shutdown timer ...\n");
     TimerDestroy();
 
-    printf("Destroy Gfx\n");
+    printf("Shutdown Gfx\n");
     GfxDestroy();
 
-    printf("Destroy Sound\n");
+    printf("Shutdown Sound\n");
     MikMod_Exit();
     return 0;
 }
@@ -153,6 +148,6 @@ int main(void)
     printf("Press ENTER to quit ...\n");
     getchar();
 
-    Destroy();
+    Shutdown();
     return 0;
 }

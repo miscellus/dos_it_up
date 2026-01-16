@@ -3,9 +3,14 @@
 
 SRCDIR = src
 BUILD = build
-IMGDIR = img
+DATADIR = data
+BUILD_DATA = data
 TOOLDIR = tools
 TARGET = $(BUILD)/myprog.exe
+
+CC = i586-pc-msdosdjgpp-gcc
+PYTHON = python3
+CP = cp
 
 INCLUDE = -Iexternal
 CFLAGS = -std=gnu99
@@ -20,29 +25,27 @@ CFLAGS += $(INCLUDE)
 # CFLAGS += -mgeneral-regs-only
 LDFLAGS = -Lexternal -lmikmod
 
-CC = i586-pc-msdosdjgpp-gcc
-LD = i586-pc-msdosdjgpp-ld
-NM = i586-pc-msdosdjgpp-nm
-OBJCOPY = i586-pc-msdosdjgpp-objcopy
-PYTHON = python3
+ALL_SRC = Makefile $(wildcard $(SRCDIR)/*.[hc]) $(wildcard $(SRCDIR)/*.inc)
 
-IMGS = $(wildcard $(IMGDIR)/*.png)
-IMGSRAW = $(patsubst $(IMGDIR)/%.png,$(BUILD)/%.img,$(IMGS))
+IMGS = $(wildcard $(DATADIR)/*.png)
+BUILD_IMGS = $(IMGS:.png=.img)
+BUILD_MUSIC = $(wildcard $(DATADIR)/*.mod)
 
-$(info IMGSRAW = $(IMGSRAW))
+ALLDATA = $(BUILD_IMGS) $(BUILD_MUSIC)
 
+$(info $(ALLDATA))
 
 SRCS = \
 	$(SRCDIR)/gfx.c \
 	$(SRCDIR)/timer.c \
+	$(SRCDIR)/data.c \
 	$(SRCDIR)/main.c \
 #
 OBJS = \
-	$(SRCDIR)/gfx.o \
+	$(BUILD)/gfx.o \
 	$(BUILD)/timer.o \
+	$(BUILD)/data.o \
 	$(BUILD)/main.o \
-#
-# 	$(BUILD)/sprite_sheet_1.img.o \
 
 .PHONY: all clean run
 
@@ -55,21 +58,21 @@ $(BUILD):
 	mkdir -p $(BUILD)
 
 # Compile C sources
-$(BUILD)/%.o: $(SRCDIR)/%.c
+$(BUILD)/%.o: $(SRCDIR)/%.c $(BUILD_IMGS) $(BUILD)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 # Assemble .s (use -c so gcc invokes gas)
-$(BUILD)/%.s.o: $(SRCDIR)/%.s
+$(BUILD)/%.s.o: $(SRCDIR)/%.s $(BUILD)
 	$(CC) -c $< -o $@
 
-$(BUILD)/%.img: $(IMGDIR)/%.png
+$(DATADIR)/%.img: $(DATADIR)/%.png
 	$(PYTHON) $(TOOLDIR)/convert_image_to_raw.py $< $@
 
-# $(BUILD)/%.img.o: $(IMGDIR)/%.raw
-# 	$(OBJCOPY) -I binary -O coff-go32 -B i386 $< $@
+$(BUILD)/CWSDPMI.EXE: $(BUILD)
+	$(CP) external/CWSDPMI.EXE $@
 
 # Link
-$(TARGET): $(OBJS) $(wildcard $(SRCDIR)/*.[hc]) $(IMGSRAW)
+$(TARGET): $(OBJS) $(ALL_SRC) $(ALLDATA) $(BUILD)/CWSDPMI.EXE
 	$(CC) -o $@ $(OBJS) $(LDFLAGS)
 
 clean:
