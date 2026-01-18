@@ -17,69 +17,30 @@
 #include "timer.h"
 #include "gfx.h"
 #include "math.h"
+#include "audio.h"
 
 #define APPROX_FRAMES_PER_SECOND 60
 #define TICKS_PER_FRAME (TIMER_TICK_FREQ / APPROX_FRAMES_PER_SECOND)
 
-static MODULE *modFile;
+static MODULE *musicModule;
 
 int Init(void)
 {
-    printf("Init Sound\n");
-    MikMod_RegisterDriver(&drv_sb);
-    MikMod_RegisterAllLoaders();
-
-    printf("Driver %.1024s\n", MikMod_InfoDriver());
-
-    printf("Init Timer\n");
+    AudioInit();
     TimerInit();
-
-    printf("Init Gfx\n");
     GfxInit();
 
-#if 1
-    /* initialize the library */
-    md_mode |= DMODE_SOFT_MUSIC;
-    if (MikMod_Init(""))
-    {
-        fprintf(stderr, "Could not initialize sound, reason: %s\n",
-        MikMod_strerror(MikMod_errno));
-        return -1;
-    }
-
-    modFile = Player_LoadMem((char *)&music, DATA_SIZE(music), 4, 0);
-    if (modFile)
-    {
-        printf("HELLLOOOO!!!\n");
-        /* start module */
-        Player_Start(modFile);
-        while (Player_Active() || kbhit()) {
-            /* we’re playing */
-            for (uint64_t i = 0; i < 0xfffff; ++i);
-            MikMod_Update();
-        }
-
-        Player_Stop();
-        Player_Free(modFile);
-    }
-    else {
-        printf("NOOOOOOO!!!\n");
-    }
-    getchar();
-#endif
     return 0;
 }
 
 int Shutdown(void)
 {
-    printf("Shutdown timer ...\n");
     TimerDestroy();
-
-    printf("Shutdown Gfx\n");
     GfxDestroy();
 
-    printf("Shutdown Sound\n");
-    MikMod_Exit();
+    Player_Stop();
+    Player_Free(musicModule);
+    AudioShutdown();
     return 0;
 }
 
@@ -104,6 +65,8 @@ void Update(void)
     if (box_x < 0) box_x = 0, dx = -FixMul(dimin, dx), color_bg = 1 + (color_bg + 1) % 63;
     if (box_y + FIX(16) >= FIX(200)) box_y = FIX(200-16), dy = -FixMul(dimin, dy), color_bg = 1 + (color_bg + 1) % 63;
     if (box_y < 0) box_y = 0, dy = -FixMul(dimin, dy), color_bg = 1 + (color_bg + 1) % 63;
+
+    MikMod_Update();
 }
 
 void Draw(void)
@@ -126,6 +89,15 @@ int main(void)
     sprBall.w = 16;
     sprBall.h = 16;
     sprBall.stride = 256;
+
+    musicModule = Player_LoadMem((char *)&music, DATA_SIZE(music), 4, 0);
+    if (!musicModule)
+    {
+        printf("NOOOOOOO!!!\n");
+        return -1;
+    }
+
+    Player_Start(musicModule);
 
     uint32_t tstart = TimerGetTicks();
     uint32_t tlast = tstart;

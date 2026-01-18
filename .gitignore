@@ -1,4 +1,5 @@
 build/
 *.o
-*.a
 *.exe
+*.swp
+*.sublime-workspace

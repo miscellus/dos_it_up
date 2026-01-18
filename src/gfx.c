@@ -150,10 +150,13 @@ int GfxInit(void)
 
     // Init palette
     outportb(0x3c8, 0);
+
+    // Transparent
     outportb(0x3c9, 0);
     outportb(0x3c9, 0);
     outportb(0x3c9, 0);
-    for (uint8_t i = 1; i < sizeof(palette)/sizeof(palette[0]); ++i)
+
+    for (uint8_t i = 0; i < sizeof(palette)/sizeof(palette[0]); ++i)
     {
         outportb(0x3c9, (palette[i].r) >> 2);
         outportb(0x3c9, (palette[i].g) >> 2);
