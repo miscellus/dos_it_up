@@ -1,4 +1,4 @@
-/* djgpp_interrupt_fixed.c – timer ISR with proper argument */
+/* djgpp_interrupt_fxed.c – timer ISR with proper argument */
 #include <dos.h>
 #include <go32.h>
 #include <dpmi.h>
@@ -9,6 +9,8 @@
 #include <sys/farptr.h>
 #include <sys/movedata.h>
 #include <sys/nearptr.h>
+#include <time.h>
+#include <stdlib.h>
 
 #include <mikmod.h>
 
@@ -22,13 +24,58 @@
 #define APPROX_FRAMES_PER_SECOND 60
 #define TICKS_PER_FRAME (TIMER_TICK_FREQ / APPROX_FRAMES_PER_SECOND)
 
-static MODULE *musicModule;
+
+const fx32 screenWFx = fx(320);
+const fx32 screenHFx = fx(200);
+
+#define BALL_COUNT 1024
+typedef struct Ball
+{
+    fxv2 p;
+    fxv2 dp;
+} Ball;
+
+static uint8_t color_bg = 1;
+
+static Sprite sprBall;
+
+typedef struct Game
+{
+    Ball balls[BALL_COUNT];
+
+    // SOUND
+    MODULE *bgMusic;
+} Game;
+
+static Game *GAME;
 
 int Init(void)
 {
-    AudioInit();
-    TimerInit();
-    GfxInit();
+    srand(time(0));
+
+    if (AudioInit()) return -1;
+    if (TimerInit()) return -1;
+    if (GfxInit()) return -1;
+
+    // Game init
+    GAME = calloc(1, sizeof(*GAME));
+    Ball *balls = GAME->balls;
+
+    GAME->bgMusic = Player_LoadMem((char *)&music, DATA_SIZE(music), 4, 0);
+    if (!GAME->bgMusic)
+    {
+        printf("NOOOOOOO!!!\n");
+        return -1;
+    }
+
+    Player_Start(GAME->bgMusic);
+
+
+    for (int i = 0; i < BALL_COUNT; ++i)
+    {
+        balls[i].p = FxV2(fx(rand()%(320-16+1)), fx(rand()%(200-16+1)));
+        balls[i].dp = FxV2(fx(20) + fxr(25, 100), fx(-3));
+    }
 
     return 0;
 }
@@ -37,43 +84,46 @@ int Shutdown(void)
 {
     TimerDestroy();
     GfxDestroy();
+    AudioShutdown();
 
     Player_Stop();
-    Player_Free(musicModule);
-    AudioShutdown();
+    Player_Free(GAME->bgMusic);
+    free(GAME);
     return 0;
 }
 
-static fix16 box_x = FIX(50);
-static fix16 box_y = FIX(50);
-static uint8_t color_bg = 1;
-
-static Sprite sprBall;
-
 void Update(void)
 {
-    static fix16 dx = FRAC(8, 1);
-    static fix16 dy = FRAC(1, 1);
-    box_x += dx;
-    box_y += dy;
+    AudioUpdate();
+    const fx32 dimin = fxr(999, 1000);
 
-    dy += FRAC(1, 10);
+    Ball *balls = GAME->balls;
 
-    const fix16 dimin = FRAC(92, 100);
+    for (int i = 0; i < BALL_COUNT; ++i)
+    {
+        balls[i].dp.y += fxr(1, 10);
+        balls[i].dp = FxV2Scale(balls[i].dp, dimin);
+        balls[i].p = FxV2Add(balls[i].p, balls[i].dp);
 
-    if (box_x + FIX(16) >= FIX(320)) box_x = FIX(320-16), dx = -FixMul(dimin, dx), color_bg = 1 + (color_bg + 1) % 63;
-    if (box_x < 0) box_x = 0, dx = -FixMul(dimin, dx), color_bg = 1 + (color_bg + 1) % 63;
-    if (box_y + FIX(16) >= FIX(200)) box_y = FIX(200-16), dy = -FixMul(dimin, dy), color_bg = 1 + (color_bg + 1) % 63;
-    if (box_y < 0) box_y = 0, dy = -FixMul(dimin, dy), color_bg = 1 + (color_bg + 1) % 63;
-
-    MikMod_Update();
+        if (balls[i].p.x >= fx(320-16)) { balls[i].p.x = fx(320-16) ; balls[i].dp.x = -balls[i].dp.x ; }
+        if (balls[i].p.x < 0)            { balls[i].p.x = fx(0)      ; balls[i].dp.x = -balls[i].dp.x ; }
+        if (balls[i].p.y >= fx(200-16)) { balls[i].p.y = fx(200-16) ; balls[i].dp.y = -balls[i].dp.y ; }
+        if (balls[i].p.y < 0)            { balls[i].p.y = fx(0)      ; balls[i].dp.y = -balls[i].dp.y ; }
+    }
 }
 
 void Draw(void)
 {
+    Ball *balls = GAME->balls;
+
     GfxRenderTarget(GFX_BUFFER);
     GfxClear(color_bg);
-    GfxDrawSpriteFx(&sprBall, box_x, box_y);
+
+    for (int i = 0; i < BALL_COUNT; ++i)
+    {
+        GfxDrawSpriteFx(&sprBall, balls[i].p.x, balls[i].p.y);
+    }
+
     GfxRenderTarget(GFX_SCREEN);
     GfxWaitVSync();
     GfxFlip();
@@ -89,15 +139,6 @@ int main(void)
     sprBall.w = 16;
     sprBall.h = 16;
     sprBall.stride = 256;
-
-    musicModule = Player_LoadMem((char *)&music, DATA_SIZE(music), 4, 0);
-    if (!musicModule)
-    {
-        printf("NOOOOOOO!!!\n");
-        return -1;
-    }
-
-    Player_Start(musicModule);
 
     uint32_t tstart = TimerGetTicks();
     uint32_t tlast = tstart;

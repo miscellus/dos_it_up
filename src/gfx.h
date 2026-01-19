@@ -17,7 +17,7 @@ int GfxSetVgaMode(uint8_t mode);
 void GfxClear(uint8_t color);
 void GfxDrawRect(uint16_t box_x, uint16_t box_y, uint16_t box_w, uint16_t box_h, uint8_t color);
 void GfxDrawSprite(Sprite *spr, uint16_t x, uint16_t y);
-void GfxDrawSpriteFx(Sprite *spr, fix16 fx, fix16 fy);
+void GfxDrawSpriteFx(Sprite *spr, fx32 fx, fx32 fy);
 void GfxFlip(void);
 void GfxRenderTarget(uint8_t useRealVRam);
 void GfxWaitVSync(void);

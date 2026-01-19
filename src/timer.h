@@ -14,7 +14,7 @@
 #define TIMER_APPROX_PERIOD (TIMER_DIVISOR / 1193182.0)
 #define TIMER_TICK_FREQ (1193182 / TIMER_DIVISOR)
 
-void TimerInit(void);
+int TimerInit(void);
 void TimerDestroy(void);
 uint32_t TimerGetTicks(void);
 double TimerTicksToSeconds(int32_t ticks);

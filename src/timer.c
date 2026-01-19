@@ -46,7 +46,7 @@ static void TimerSetDivisor(uint16_t divisor)
     enable();
 }
 
-void TimerInit(void)
+int TimerInit(void)
 {
     LOCK_VARIABLE(timerTicks);
     LOCK_FUNCTION(TimerHandler);
@@ -59,7 +59,7 @@ void TimerInit(void)
 
     TimerSetDivisor(TIMER_DIVISOR);
 
-    printf("TIMER Freq: %lu\n", TIMER_TICK_FREQ);
+    return 0;
 }
 
 void TimerDestroy(void)

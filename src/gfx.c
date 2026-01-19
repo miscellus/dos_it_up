@@ -110,10 +110,10 @@ void GfxDrawSprite(Sprite *spr, uint16_t x, uint16_t y)
     }
 }
 
-void GfxDrawSpriteFx(Sprite *spr, fix16 fx, fix16 fy)
+void GfxDrawSpriteFx(Sprite *spr, fx32 fx, fx32 fy)
 {
-    uint16_t x = FixToInt(fx);
-    uint16_t y = FixToInt(fy);
+    uint16_t x = Fx2Int(fx);
+    uint16_t y = Fx2Int(fy);
     GfxDrawSprite(spr, x, y);
 }
 
